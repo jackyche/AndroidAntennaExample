@@ -1,0 +1,215 @@
+<project name="helloworld" default="release_all" basedir=".">
+    <property environment="env" />  
+    <property name="appName" value="${ant.project.name}"/>  
+    <property name="sdk-folder" value="/Users/jacky/Documents/work/CamelGame/android-sdk-mac_x86" />  
+    <property name="sdk-platform-folder" value="${sdk-folder}/platforms/platformsandroid-4"/>  
+    <property name="sdk-tools" value="${sdk-folder}/tools" />  
+    <property name="sdk-platform-tools" value="${sdk-platform-folder}/tools" />  
+  
+    <property name="aapt" value="${sdk-platform-tools}/aapt" />  
+    <property name="dx" value="${sdk-platform-tools}/dx" />  
+    <property name="apkbuilder" value="${sdk-tools}/apkbuilder" />  
+    <property name="jarsigner" value="/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Commands/jarsigner" />  
+      
+    <property name="android-jar" value="${sdk-platform-folder}/android.jar" />  
+  
+    <property name="outdir-gen" value="gen" />  
+    <property name="outdir-bin" value="bin" />  
+	<property name="outdir-release" value="release" />  
+
+    <property name="manifest-xml" value="AndroidManifest.xml" />  
+    <property name="resource-dir" value="res" />  
+    <property name="asset-dir" value="assets" />  
+    <property name="srcdir" value="src" />  
+	<property name="outdir-preprocess" value="${outdir-bin}/preprocess" />
+    <property name="srcdir-ospath" value="${basedir}/${srcdir}" />  
+    <property name="external-lib" value="libs" />  
+    <property name="external-lib-ospath" value="${basedir}/${external-lib}" />  
+  
+    <property name="outdir-classes" value="${outdir-bin}" />  
+    <property name="outdir-classes-ospath" value="${basedir}/${outdir-classes}" />  
+  
+    <property name="dex-file" value="classes.dex" />  
+    <property name="dex-path" value="${outdir-bin}/${dex-file}" />  
+    <property name="dex-ospath" value="${basedir}/${dex-path}" />  
+  
+    <property name="resources-package" value="${outdir-bin}/resources.ap_" />  
+    <property name="resources-package-ospath" value="${basedir}/${resources-package}" />  
+      
+    <property name="out-unsigned-package" value="${outdir-bin}/${appName}-unsigned.apk" />  
+    <property name="out-unsigned-package-ospath" value="${basedir}/${out-unsigned-package}" />  
+    
+    <property name="keystore-file" value="${basedir}/release.keystore" />  
+      
+    <property name="out-signed-package" value="${outdir-bin}/${appName}.apk" />  
+    <property name="out-signed-package-ospath" value="${basedir}/${out-signed-package}" />  
+	
+	<!-- wtk is not neccessory ,but still need to define wtk.home -->
+	<property name="wtk.home" value="/tmp" />
+	<!-- Defining Antenna's WTK tasks hard coded, do NOT ask -->
+	<path id="antenna.lib">
+	 	<pathelement location="antenna/antenna-bin-1.2.1-beta.jar"/>
+	 </path>
+	<taskdef name="preprocess" classname="de.pleumann.antenna.WtkPreprocess">
+		<classpath refid="antenna.lib"/>
+	</taskdef>
+	
+	<!-- 
+	  input: macros.definition 
+	  environment: srcdir, destdir
+	-->
+	<target name="preproc">
+		<echo message="proproc: ${version.definition}" />
+		<preprocess srcdir="${srcdir}" destdir="${outdir-preprocess}" symbols="${macros.definition}" />
+	</target>
+	
+	<target name="build_one"  depends="clean">
+		<!-- preproc uses marcos.definition -->
+		<antcall target="preproc" />
+		
+		<!-- release apk -->
+		<antcall target="release" />
+	</target>
+
+    <target name="clean">  
+        <echo>Initializing all output directories...</echo>  
+        <delete dir="${outdir-bin}" />  
+        <mkdir dir="${outdir-bin}" />  
+        <mkdir dir="${outdir-classes}" />  
+    	<mkdir dir="${outdir-preprocess}"/>
+    </target>
+	
+    <target name="gen-R">  
+        <echo>Generating R.java from the resources...</echo>  
+        <exec executable="${aapt}" failonerror="true">  
+            <arg value="package" />  
+            <arg value="-f" />  
+            <arg value="-m" />  
+            <arg value="-J" />  
+            <arg value="${outdir-gen}" />  
+            <arg value="-S" />  
+            <arg value="${resource-dir}" />  
+            <arg value="-M" />  
+            <arg value="${manifest-xml}" />  
+            <arg value="-I" />  
+            <arg value="${android-jar}" />  
+        </exec>  
+    </target>
+	
+    <target name="compile" depends="gen-R">  
+        <echo>Compiling java source code...</echo>  
+        <javac encoding="utf-8" target="1.6" destdir="${outdir-classes}" bootclasspath="${android-jar}">  
+        	<src path="${outdir-preprocess}"/>
+        	<src path="${outdir-gen}"/>
+        	
+        	<classpath>  
+                <fileset dir="${external-lib}" includes="*.jar"/>  
+            </classpath>  
+        </javac>  
+    </target>
+	
+    <target name="dex" depends="compile">  
+        <echo>Converting compiled files and external libraries into a .dex file...</echo>  
+        <exec executable="${dx}" failonerror="true">  
+            <arg value="--dex" />    
+            <arg value="--output=${dex-ospath}" />  
+            <arg value="${outdir-classes-ospath}" />  
+            <arg value="${external-lib-ospath}"/>  
+        </exec>  
+    </target>	
+	
+    <target name="package-res-and-assets">  
+        <echo>Packaging resources and assets...</echo>  
+        <exec executable="${aapt}" failonerror="true">  
+            <arg value="package" />  
+            <arg value="-f" />  
+            <arg value="-M" />  
+            <arg value="${manifest-xml}" />  
+            <arg value="-S" />  
+            <arg value="${resource-dir}" />  
+            <arg value="-A" />  
+            <arg value="${asset-dir}" />  
+            <arg value="-I" />  
+            <arg value="${android-jar}" />  
+            <arg value="-F" />  
+            <arg value="${resources-package}" />  
+        </exec>  
+    </target>
+	
+    <target name="package" depends="dex, package-res-and-assets">  
+        <echo>Packaging unsigned apk for release...</echo>  
+        <exec executable="${apkbuilder}" failonerror="true">  
+            <!--<arg value="${out-unsigned-package-ospath}" />-->
+        	<arg value="${out-unsigned-package-ospath}" />
+            <arg value="-u" />  
+            <arg value="-z" />  
+            <arg value="${resources-package-ospath}" />  
+            <arg value="-f" />  
+            <arg value="${dex-ospath}" />  
+            <arg value="-rf" />  
+            <arg value="${srcdir-ospath}" />  
+        </exec>  
+        <echo>It will need to be signed with jarsigner before being published.</echo>  
+    </target>	
+	
+    <target name="jarsigner" depends="package">  
+        <echo>Packaging signed apk for release...</echo>  
+        <exec executable="${jarsigner}" failonerror="true">  
+            <arg value="-keystore" />  
+            <arg value="${keystore-file}" />  
+            <arg value="-storepass" />  
+            <arg value="qwer1234" />  
+            <arg value="-keypass" />  
+            <arg value="qwer1234" />  
+            <arg value="-signedjar" />  
+            <arg value="${outdir-release}/${release.name}.apk" />  
+            <arg value="${out-unsigned-package-ospath}"/>  
+            <!-- don't forget alis of certification -->  
+            <arg value="release.keystore"/>  
+        </exec>  
+    </target>  
+	
+    <target name="verifysign" depends="jarsigner">  
+        <echo>Verfify signed apk for release...</echo>  
+        <exec executable="${jarsigner}" failonerror="true">  
+            <arg value="-verify" />  
+            <arg value="-verbose" />  
+            <arg value="${outdir-release}/${release.name}.apk" />  
+        </exec>  
+    </target>  
+	
+    <target name="release" depends="verifysign">  
+        <delete file="${out-unsigned-package-ospath}"/>  
+        <echo>APK is released. path:${outdir-release}/${release.name}.apk</echo>
+    </target> 
+	
+	<target name="release_91" description="release for 91 platform">
+		<antcall target="build_one">
+			<param name="macros.definition" value="CHANNEL_91, FLAG_91" />
+			<param name="release.name" value="release_91" />
+		</antcall>
+	</target>
+
+	<target name="release_uc" description="release for uc platform">
+		<antcall target="build_one">
+			<param name="macros.definition" value="CHANNEL_UC" />
+			<param name="release.name" value="release_uc" />
+		</antcall>
+	</target>
+	
+	<target name="release_qq" description="release for qq platform">
+		<antcall target="build_one">
+			<param name="macros.definition" value="CHANNEL_QQ" />
+			<param name="release.name" value="release_qq" />
+		</antcall>
+	</target>
+	
+	<target name="release_all" description ="pulbish all channels">
+    	<delete dir="${outdir-release}" />  
+    	<mkdir dir="${outdir-release}" />  
+		
+		<antcall target="release_91"/>
+		<antcall target="release_uc"/>
+		<antcall target="release_qq"/>
+	</target>
+</project>
