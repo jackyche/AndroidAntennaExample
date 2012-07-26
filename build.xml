@@ -18,6 +18,7 @@
 	<property name="outdir-release" value="release" />  
 
     <property name="manifest-xml" value="AndroidManifest.xml" />  
+    <property name="manifest-xml-token-replaced" value="${outdir-bin}/AndroidManifest.xml" />  
     <property name="resource-dir" value="res" />  
     <property name="asset-dir" value="assets" />  
     <property name="srcdir" value="src" />  
@@ -89,7 +90,13 @@
     	<mkdir dir="${outdir-preprocess-1}"/>
     </target>
 	
-    <target name="gen-R">  
+    <target name="replace-token">  
+        <echo>Replace token in Manifest.xml...</echo>
+    	  <copy file="${manifest-xml}" tofile="${manifest-xml-token-replaced}"/>
+    	  <replace file="${manifest-xml-token-replaced}" token="@CHANNEL_NAME@" value="${channel.name}"/>
+    </target>	
+	
+    <target name="gen-R"  depends="replace-token">  
         <echo>Generating R.java from the resources...</echo>  
         <exec executable="${aapt}" failonerror="true">  
             <arg value="package" />  
@@ -100,7 +107,7 @@
             <arg value="-S" />  
             <arg value="${resource-dir}" />  
             <arg value="-M" />  
-            <arg value="${manifest-xml}" />  
+            <arg value="${manifest-xml-token-replaced}" />  
             <arg value="-I" />  
             <arg value="${android-jar}" />  
         </exec>  
@@ -128,13 +135,14 @@
         </exec>  
     </target>	
 	
+	
     <target name="package-res-and-assets">  
         <echo>Packaging resources and assets...</echo>  
         <exec executable="${aapt}" failonerror="true">  
             <arg value="package" />  
             <arg value="-f" />  
             <arg value="-M" />  
-            <arg value="${manifest-xml}" />  
+            <arg value="${manifest-xml-token-replaced}" />  
             <arg value="-S" />  
             <arg value="${resource-dir}" />  
             <arg value="-A" />  
@@ -197,6 +205,7 @@
 		<antcall target="build_one">
 			<param name="macros.definition" value="CHANNEL_91, FLAG_91" />
 			<param name="release.name" value="release_91" />
+			<param name="channel.name" value="91" />
 		</antcall>
 	</target>
 
@@ -204,6 +213,7 @@
 		<antcall target="build_one">
 			<param name="macros.definition" value="CHANNEL_UC" />
 			<param name="release.name" value="release_uc" />
+			<param name="channel.name" value="UC" />
 		</antcall>
 	</target>
 	
@@ -211,6 +221,7 @@
 		<antcall target="build_one">
 			<param name="macros.definition" value="CHANNEL_QQ" />
 			<param name="release.name" value="release_qq" />
+			<param name="channel.name" value="QQ" />
 		</antcall>
 	</target>
 	
