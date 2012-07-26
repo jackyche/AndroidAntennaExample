@@ -1,7 +1,7 @@
 <project name="helloworld" default="release_all" basedir=".">
     <property environment="env" />  
     <property name="appName" value="${ant.project.name}"/>  
-    <property name="sdk-folder" value="/Users/jacky/Documents/work/CamelGame/android-sdk-mac_x86" />  
+    <property name="sdk-folder" value="/Users/chunhui/Documents/devtools/android-sdk-mac_x86" />  
     <property name="sdk-platform-folder" value="${sdk-folder}/platforms/platformsandroid-4"/>  
     <property name="sdk-tools" value="${sdk-folder}/tools" />  
     <property name="sdk-platform-tools" value="${sdk-platform-folder}/tools" />  
@@ -22,6 +22,7 @@
     <property name="asset-dir" value="assets" />  
     <property name="srcdir" value="src" />  
 	<property name="outdir-preprocess" value="${outdir-bin}/preprocess" />
+	<property name="outdir-preprocess-1" value="${outdir-bin}/preprocess-1" />
     <property name="srcdir-ospath" value="${basedir}/${srcdir}" />  
     <property name="external-lib" value="libs" />  
     <property name="external-lib-ospath" value="${basedir}/${external-lib}" />  
@@ -60,7 +61,13 @@
 	-->
 	<target name="preproc">
 		<echo message="proproc: ${version.definition}" />
-		<preprocess srcdir="${srcdir}" destdir="${outdir-preprocess}" symbols="${macros.definition}" />
+		<copy todir="${outdir-preprocess-1}">
+		    <fileset dir="${srcdir}"/>
+		</copy>
+		<replaceregexp match="//\s+@" replace="////@" flags="g" byline="true">
+		    <fileset dir="${outdir-preprocess-1}" includes="**/*.java"/>
+		</replaceregexp>
+		<preprocess srcdir="${outdir-preprocess-1}" destdir="${outdir-preprocess}" symbols="${macros.definition}" />
 	</target>
 	
 	<target name="build_one"  depends="clean">
@@ -74,9 +81,12 @@
     <target name="clean">  
         <echo>Initializing all output directories...</echo>  
         <delete dir="${outdir-bin}" />  
+    	<delete dir="${outdir-release}"/>
         <mkdir dir="${outdir-bin}" />  
+    	<mkdir dir="${outdir-release}"/>
         <mkdir dir="${outdir-classes}" />  
     	<mkdir dir="${outdir-preprocess}"/>
+    	<mkdir dir="${outdir-preprocess-1}"/>
     </target>
 	
     <target name="gen-R">  

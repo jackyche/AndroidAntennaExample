@@ -27,6 +27,12 @@ public class HelloActivity extends Activity {
     public HelloActivity() {
     }
 
+// test not replace @Override    
+//    @Override   
+//      @Override
+// @Override 
+    
+    
     /**
      * Called with the activity is first created.
      */
