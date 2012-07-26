@@ -157,7 +157,6 @@
     <target name="package" depends="dex, package-res-and-assets">  
         <echo>Packaging unsigned apk for release...</echo>  
         <exec executable="${apkbuilder}" failonerror="true">  
-            <!--<arg value="${out-unsigned-package-ospath}" />-->
         	<arg value="${out-unsigned-package-ospath}" />
             <arg value="-u" />  
             <arg value="-z" />  
